@@ -1,0 +1,12 @@
+FROM postgres:15-alpine
+
+# 初期化スクリプトをコピー
+COPY init.sql /docker-entrypoint-initdb.d/
+
+# 環境変数の設定
+ENV POSTGRES_USER=user
+ENV POSTGRES_PASSWORD=password
+ENV POSTGRES_DB=testdb
+
+# ポート5432を公開
+EXPOSE 5432

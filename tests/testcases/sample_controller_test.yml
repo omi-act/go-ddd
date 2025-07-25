@@ -1,0 +1,28 @@
+desc: SampleController Test
+vars:
+  host: http://localhost:9000
+  endpoint: /sample/greet
+  expected_message: "Hello, World!"
+
+runners:
+  req: http://localhost:9000
+steps:
+  CallSampleGet:
+    desc: "Test GET /sample/greet endpoint - Success case"
+    req:
+      /sample/greet:
+        get:
+          body: null
+    test: |
+      current.res.status == 200 
+      && current.res.body == "Hello, World!" 
+  CallSamplePost:
+    desc: "Test unsupported method - Should return 405"
+    req:
+      /sample/greet:
+        post:
+          body:
+              application/json:
+                message: "dummy message"
+    test: |
+      current.res.status == 405
