@@ -1,0 +1,45 @@
+# GreetById テストケース
+# SampleControllerのGET /sample/greetById/{id}エンドポイントのテスト
+desc: SampleController.GreetById Test
+vars:
+  valid_user_id: "1"
+  invalid_user_id: "-1"
+  not_found_user_id: "999"
+
+runners:
+  req: http://localhost:9100
+steps:
+  CallGreetByIdSuccess:
+    desc: "Test GET /sample/greetById/{id} endpoint - Success case with valid user ID"
+    req:
+      /sample/greetById/{{ vars.valid_user_id }}:
+        get:
+          body: null
+    test: |
+      current.res.status == 200
+      && current.res.body.message startsWith "Hello,"
+      && current.res.body.message endsWith "!"
+    dump: 
+      current.res.body
+
+  CallGreetByIdInvalidId:
+    desc: "Test GET /sample/greetById/{id} endpoint - Invalid user ID (empty)"
+    req:
+      /sample/greetById/{{ vars.invalid_user_id }}:
+        get:
+          body: null
+    test: |
+      current.res.status == 500
+      && current.res.body.error == "invalid user ID"
+    dump: current.res.body
+  
+  CallGreetByIdNotFound:
+    desc: "Test GET /sample/greetById/{id} endpoint - User not found"
+    req:
+      /sample/greetById/{{ vars.not_found_user_id }}:
+        get:
+          body: null
+    test: |
+      current.res.status == 500
+      && current.res.body.error == "user not found"
+    dump: current.res.body

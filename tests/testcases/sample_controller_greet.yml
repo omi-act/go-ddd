@@ -1,11 +1,12 @@
-desc: SampleController Test
+# Greet テストケース
+# SampleControllerのGET /sample/greetエンドポイントのテスト
+desc: SampleController.Greet Test
 vars:
-  host: http://localhost:9000
-  endpoint: /sample/greet
+  host: http://localhost:9100
   expected_message: "Hello, World!"
 
 runners:
-  req: http://localhost:9000
+  req: http://localhost:9100
 steps:
   CallSampleGet:
     desc: "Test GET /sample/greet endpoint - Success case"
@@ -15,7 +16,7 @@ steps:
           body: null
     test: |
       current.res.status == 200 
-      && current.res.body == "Hello, World!" 
+      && current.res.body == vars.expected_message
   CallSamplePost:
     desc: "Test unsupported method - Should return 405"
     req:
@@ -26,3 +27,4 @@ steps:
                 message: "dummy message"
     test: |
       current.res.status == 405
+  

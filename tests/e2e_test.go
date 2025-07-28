@@ -5,22 +5,26 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-	"os"
 
-	"github.com/k1LoW/runn"
 	"github.com/jackc/pgx/v4"
+	"github.com/k1LoW/runn"
 	_ "github.com/lib/pq"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"go-ddd/internal/app"
 )
 
 var (
-	testServerURL           = "http://localhost:9000"
-	runnBookDir             = "./testcases"
+	testAppPort   = "9100"
+	testServerURL = "http://localhost:9100"
+	runnBookDir   = "./testcases"
 )
 
 // TestMain はDBコンテナのセットアップとE2Eテストの実行を行います。
@@ -32,17 +36,18 @@ func TestMain(m *testing.M) {
 	// コンテキストの作成
 	ctx := context.Background()
 
+	// TODO: 設定整理
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:    "./docker",
 			Dockerfile: "Dockerfile.postgres",
 		},
 		ExposedPorts: []string{hostPort + ":5432"},
-		Env: map[string]string{
-			"POSTGRES_PASSWORD": "password",
-			"POSTGRES_USER":     "user",
-			"POSTGRES_DB":       "testdb",
-		},
+		// Env: map[string]string{
+		// 	"POSTGRES_PASSWORD": "password",
+		// 	"POSTGRES_USER":     "user",
+		// 	"POSTGRES_DB":       "testdb",
+		// },
 		WaitingFor: wait.ForListeningPort("5432/tcp").WithStartupTimeout(100 * time.Second),
 	}
 
@@ -51,28 +56,51 @@ func TestMain(m *testing.M) {
 		ContainerRequest: req,
 		Started:          true,
 	})
-
-	// コンテナの終了処理
 	if err != nil {
 		panic(err)
 	}
-	defer postgresC.Terminate(ctx)
+	defer postgresC.Terminate(ctx) // コンテナの終了処理
 
-	// ホストとポートの取得
+	// DB疎通確認
+	if err := ping(ctx, postgresC); err != nil {
+		panic(fmt.Sprintf("Failed to ping database: %v", err))
+	}
+	fmt.Println("Test database initialized with Dockerfile and init.sql")
+
+	// テスト環境フラグを設定
+	os.Setenv("TEST_ENV", "true")
+
+	// サーバ起動
+	go func() {
+		e := app.Initialize()
+		if err := e.Start(":" + testAppPort); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// テストの実行
+	code := m.Run()
+	os.Exit(code)
+}
+
+// ping はPostgreSQLコンテナへの接続確認を行います。
+// エラーが発生した場合はその内容を返します。
+func ping(ctx context.Context, postgresC testcontainers.Container) error {
+
 	host, err := postgresC.Host(ctx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	port, err := postgresC.MappedPort(ctx, "5432")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// DB接続
 	dsn := fmt.Sprintf("postgres://user:password@%s:%s/testdb?sslmode=disable", host, port.Port())
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer conn.Close(ctx)
 
@@ -80,21 +108,12 @@ func TestMain(m *testing.M) {
 	var db *sql.DB
 	db, err = sql.Open("postgres", dsn)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer db.Close()
 
 	// データベース接続の確認（init.sqlは自動実行されるため手動実行不要）
-	err = db.Ping()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to ping database: %v", err))
-	}
-
-	fmt.Println("Test database initialized with Dockerfile and init.sql")
-
-	// テストの実行
-	code := m.Run()
-	os.Exit(code)
+	return db.Ping()
 }
 
 // Test_e2eはE2Eテストを実行する関数です。
@@ -141,8 +160,8 @@ func getRunnBookFiles() ([]string, error) {
 			return err
 		}
 
-		// .ymlまたは.yamlファイルで、test.ymlで終わるファイルを対象とする
-		if !d.IsDir() && (strings.HasSuffix(path, "_test.yml") || strings.HasSuffix(path, "_test.yaml")) {
+		// .ymlまたは.yamlファイルを対象とする
+		if !d.IsDir() && (strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml")) {
 			// 相対パスを取得
 			relativePath, err := filepath.Rel(runnBookDir, path)
 			if err != nil {
@@ -157,7 +176,9 @@ func getRunnBookFiles() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}
+	if len(runnBookFiles) == 0 {
+		return nil, fmt.Errorf("no runnbook files found")
+	}
 
 	return runnBookFiles, nil
 }
-
