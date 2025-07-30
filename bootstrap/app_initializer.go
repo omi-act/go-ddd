@@ -15,10 +15,10 @@ import (
 )
 
 // Initialize はアプリケーションの初期化を行います。
-func Initialize() (*echo.Echo, error) {
+func Initialize(envFile string) (*echo.Echo, error) {
 
 	// .envファイルを読み込み
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(envFile); err != nil {
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
 

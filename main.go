@@ -37,7 +37,7 @@ func run() error {
 		return fmt.Errorf("SERVER_PORT environment variable is not set")
 	}
 
-	e, err := bootstrap.Initialize()
+	e, err := bootstrap.Initialize(envFile)
 	if err != nil {
 		return fmt.Errorf("failed to initialize application: %w", err)
 	}

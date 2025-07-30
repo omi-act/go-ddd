@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 
 	// アプリケーション起動
 	go func() {
-		e, err := bootstrap.Initialize()
+		e, err := bootstrap.Initialize(envFile)
 		if err != nil {
 			fmt.Printf("Failed to initialize application: %v\n", err)
 			os.Exit(ExitError)
