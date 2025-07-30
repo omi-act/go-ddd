@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4"
+	"github.com/joho/godotenv"
 	"github.com/k1LoW/runn"
 	_ "github.com/lib/pq"
 	"github.com/testcontainers/testcontainers-go"
@@ -21,37 +21,66 @@ import (
 	"go-ddd/internal/app"
 )
 
-var (
-	testAppPort   = "9100"
-	testServerURL = "http://localhost:9100"
-	runnBookDir   = "./testcases"
+const (
+	envFile    = "../.env.test"
+	runnBookDir = "./testcases"
 )
 
 // TestMain はDBコンテナのセットアップとE2Eテストの実行を行います。
 func TestMain(m *testing.M) {
 
-	// ポート番号の定義
-	const hostPort = "5430"
+	// .envファイルを読み込み
+	if err := godotenv.Load(envFile); err != nil {
+		fmt.Printf("Warning: .env file not found or could not be loaded: %v\n", err)
+	}
 
-	// コンテキストの作成
+	// 環境変数からアプリケーションのホストとポートを取得
+	appHost := os.Getenv("SERVER_HOST")
+	appPort := os.Getenv("SERVER_PORT")
+	if appHost == "" || appPort == "" {
+		panic("SERVER_HOST or SERVER_PORT environment variable is not set")
+	}
+
+	// DBコンテナの起動
 	ctx := context.Background()
+	postgresC, err := startPostgresContainer(ctx)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to ping database: %v", err))
+	}
+	defer postgresC.Terminate(ctx)
 
-	// TODO: 設定整理
+	fmt.Println("Test database initialized with Dockerfile and init.sql")
+
+	// アプリケーション起動
+	go func() {
+		e := app.Initialize()
+		if err := e.Start(":" + appPort); err != nil {
+			fmt.Printf("Failed to start server: %v", err)
+		}
+	}()
+	time.Sleep(3 * time.Second)	// 起動待機
+
+	// テストの実行
+	code := m.Run()
+	os.Exit(code)
+}
+
+// startPostgresContainer はPostgreSQLコンテナを起動し、接続確認を行います。
+func startPostgresContainer(ctx context.Context) (testcontainers.Container, error) {
+
+	// コンテナの設定
+	hostPort := os.Getenv("DB_PORT")
+	if hostPort == "" {
+		panic("DB_PORT environment variable is not set")
+	}
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:    "./docker",
 			Dockerfile: "Dockerfile.postgres",
 		},
 		ExposedPorts: []string{hostPort + ":5432"},
-		// Env: map[string]string{
-		// 	"POSTGRES_PASSWORD": "password",
-		// 	"POSTGRES_USER":     "user",
-		// 	"POSTGRES_DB":       "testdb",
-		// },
-		WaitingFor: wait.ForListeningPort("5432/tcp").WithStartupTimeout(100 * time.Second),
+		WaitingFor:   wait.ForListeningPort("5432/tcp").WithStartupTimeout(100 * time.Second),
 	}
-
-	// コンテナの起動
 	postgresC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
@@ -59,48 +88,22 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer postgresC.Terminate(ctx) // コンテナの終了処理
 
-	// DB疎通確認
-	if err := ping(ctx, postgresC); err != nil {
-		panic(fmt.Sprintf("Failed to ping database: %v", err))
-	}
-	fmt.Println("Test database initialized with Dockerfile and init.sql")
-
-	// テスト環境フラグを設定
-	os.Setenv("TEST_ENV", "true")
-
-	// サーバ起動
-	go func() {
-		e := app.Initialize()
-		if err := e.Start(":" + testAppPort); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	// テストの実行
-	code := m.Run()
-	os.Exit(code)
-}
-
-// ping はPostgreSQLコンテナへの接続確認を行います。
-// エラーが発生した場合はその内容を返します。
-func ping(ctx context.Context, postgresC testcontainers.Container) error {
-
+	// データベース接続の確認
 	host, err := postgresC.Host(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	port, err := postgresC.MappedPort(ctx, "5432")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// DB接続
 	dsn := fmt.Sprintf("postgres://user:password@%s:%s/testdb?sslmode=disable", host, port.Port())
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer conn.Close(ctx)
 
@@ -108,12 +111,11 @@ func ping(ctx context.Context, postgresC testcontainers.Container) error {
 	var db *sql.DB
 	db, err = sql.Open("postgres", dsn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer db.Close()
 
-	// データベース接続の確認（init.sqlは自動実行されるため手動実行不要）
-	return db.Ping()
+	return postgresC, db.Ping()
 }
 
 // Test_e2eはE2Eテストを実行する関数です。
@@ -126,6 +128,14 @@ func Test_e2e(t *testing.T) {
 		t.Fatalf("Failed to get runnbook files: %v", err)
 	}
 
+	// 環境変数からアプリケーションのホストとポートを取得
+	appHost := os.Getenv("SERVER_HOST")
+	appPort := os.Getenv("SERVER_PORT")
+	if appHost == "" || appPort == "" {
+		panic("SERVER_HOST or SERVER_PORT environment variable is not set")
+	}
+	url := fmt.Sprintf("http://%s:%s", appHost, appPort)
+
 	// NOTE: ランブックごとにAPIテストを実行
 	for _, runnBookFile := range runnBookFiles {
 		t.Run(runnBookFile, func(t *testing.T) {
@@ -135,7 +145,7 @@ func Test_e2e(t *testing.T) {
 			opts := []runn.Option{
 				runn.T(t),
 				runn.Book(runnBookFilePath),
-				runn.Runner("req", testServerURL),
+				runn.Runner("req", url),
 				runn.Scopes("read:parent"),
 			}
 			o, err := runn.New(opts...)

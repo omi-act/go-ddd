@@ -2,7 +2,6 @@
 # SampleControllerのGET /sample/greetエンドポイントのテスト
 desc: SampleController.Greet Test
 vars:
-  host: http://localhost:9100
   expected_message: "Hello, World!"
 
 runners:
@@ -17,6 +16,7 @@ steps:
     test: |
       current.res.status == 200 
       && current.res.body == vars.expected_message
+    dump: current.res.body
   CallSamplePost:
     desc: "Test unsupported method - Should return 405"
     req:
