@@ -1,5 +1,5 @@
-# GreetById テストケース
-# SampleControllerのGET /sample/greetById/{id}エンドポイントのテスト
+# API結合テストシナリオ
+# 対象：SampleControllerのGET /sample/greetById/{id}エンドポイント
 desc: SampleController.GreetById Test
 vars:
   valid_user_id: "1"

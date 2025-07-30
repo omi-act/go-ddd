@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 
-	"go-ddd/internal/app"
+	"go-ddd/bootstrap"
 
 	"github.com/joho/godotenv"
 )
@@ -25,7 +25,7 @@ func main() {
 	if port == "" {
 		panic("SERVER_PORT environment variable is not set")
 	}
-	e, err := app.Initialize()
+	e, err := bootstrap.Initialize()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize application: %v", err))
 	}

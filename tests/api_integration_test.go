@@ -18,11 +18,11 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"go-ddd/internal/app"
+	"go-ddd/bootstrap"
 )
 
 const (
-	envFile    = "../.env.test"
+	envFile     = "../.env.test"
 	runnBookDir = "./testcases"
 )
 
@@ -53,7 +53,7 @@ func TestMain(m *testing.M) {
 
 	// アプリケーション起動
 	go func() {
-		e, err := app.Initialize()
+		e, err := bootstrap.Initialize()
 		if err != nil {
 			panic(fmt.Sprintf("Failed to initialize application: %v", err))
 		}
@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start server: %v", err))
 		}
 	}()
-	time.Sleep(3 * time.Second)	// 起動待機
+	time.Sleep(3 * time.Second) // 起動待機
 
 	// テストの実行
 	code := m.Run()
@@ -76,6 +76,7 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, erro
 	if hostPort == "" {
 		panic("DB_PORT environment variable is not set")
 	}
+
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:    "./docker",
@@ -121,8 +122,8 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, erro
 	return postgresC, db.Ping()
 }
 
-// Test_e2eはE2Eテストを実行する関数です。
-func Test_e2e(t *testing.T) {
+// Test_APIIntegrationはAPI結合テストを実行する関数です。
+func Test_APIIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	// runnbookファイルを取得

@@ -1,5 +1,4 @@
-# Greet テストケース
-# SampleControllerのGET /sample/greetエンドポイントのテスト
+# SampleControllerのGET /sample/greetエンドポイントのテストシナリオです。
 desc: SampleController.Greet Test
 vars:
   expected_message: "Hello, World!"

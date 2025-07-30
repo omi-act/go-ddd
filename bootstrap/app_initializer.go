@@ -1,12 +1,12 @@
-package app
+package bootstrap
 
 import (
+	"fmt"
 	"os"
 	"strconv"
-	"fmt"
-	
-	"go-ddd/internal/infrastructure/postgres"
+
 	"go-ddd/internal/application/services"
+	"go-ddd/internal/infrastructure/postgres"
 	"go-ddd/internal/infrastructure/postgres/repositories"
 	"go-ddd/internal/presentation/controllers"
 
@@ -23,7 +23,7 @@ func Initialize() (*echo.Echo, error) {
 	}
 
 	// データベース接続設定を環境変数から読み込み
-	dbConfig, err := LoadEnv()
+	dbConfig, err := loadDBEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load database config from environment variables: %w", err)
 	}
@@ -44,8 +44,8 @@ func Initialize() (*echo.Echo, error) {
 	return e, nil
 }
 
-// LoadEnv は環境変数からデータベース接続設定を読み込みます。
-func LoadEnv() (*postgres.Connection, error) {
+// loadDBEnv は環境変数からデータベース接続設定を読み込みます。
+func loadDBEnv() (*postgres.DatabaseConfig, error) {
 
 	// 環境変数読み込み
 	envVals := map[string]string{
@@ -73,7 +73,7 @@ func LoadEnv() (*postgres.Connection, error) {
 		return nil, fmt.Errorf("invalid PORT: %w", err)
 	}
 
-	return &postgres.Connection{
+	return &postgres.DatabaseConfig{
 		Host:     envVals["DB_HOST"],
 		Port:     port,
 		User:     envVals["DB_USER"],
