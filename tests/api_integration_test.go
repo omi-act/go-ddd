@@ -23,7 +23,10 @@ import (
 
 const (
 	envFile     = "../.env.test"
-	runnBookDir = "./testcases"
+	runnBookDir = "./scenarios"
+
+	// 終了コード定数
+	ExitError   = 1 // エラー終了
 )
 
 // TestMain はDBコンテナのセットアップとE2Eテストの実行を行います。
@@ -32,20 +35,22 @@ func TestMain(m *testing.M) {
 	// .envファイルを読み込み
 	if err := godotenv.Load(envFile); err != nil {
 		fmt.Printf("Warning: .env file not found or could not be loaded: %v\n", err)
+		os.Exit(ExitError)
 	}
 
-	// 環境変数からアプリケーションのホストとポートを取得
-	appHost := os.Getenv("SERVER_HOST")
+	// 環境変数からアプリケーションのポートを取得
 	appPort := os.Getenv("SERVER_PORT")
-	if appHost == "" || appPort == "" {
-		panic("SERVER_HOST or SERVER_PORT environment variable is not set")
+	if appPort == "" {
+		fmt.Println("SERVER_PORT environment variable is not set")
+		os.Exit(ExitError)
 	}
 
 	// DBコンテナの起動
 	ctx := context.Background()
 	postgresC, err := startPostgresContainer(ctx)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to ping database: %v", err))
+		fmt.Printf("Failed to start postgres container: %v\n", err)
+		os.Exit(ExitError)
 	}
 	defer postgresC.Terminate(ctx)
 
@@ -55,10 +60,12 @@ func TestMain(m *testing.M) {
 	go func() {
 		e, err := bootstrap.Initialize()
 		if err != nil {
-			panic(fmt.Sprintf("Failed to initialize application: %v", err))
+			fmt.Printf("Failed to initialize application: %v\n", err)
+			os.Exit(ExitError)
 		}
 		if err := e.Start(":" + appPort); err != nil {
-			panic(fmt.Sprintf("Failed to start server: %v", err))
+			fmt.Printf("Failed to start server: %v\n", err)
+			os.Exit(ExitError)
 		}
 	}()
 	time.Sleep(3 * time.Second) // 起動待機
@@ -74,7 +81,7 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, erro
 	// コンテナの設定
 	hostPort := os.Getenv("DB_PORT")
 	if hostPort == "" {
-		panic("DB_PORT environment variable is not set")
+		return nil, fmt.Errorf("DB_PORT environment variable is not set")
 	}
 
 	req := testcontainers.ContainerRequest{
@@ -90,7 +97,7 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, erro
 		Started:          true,
 	})
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create postgres container: %w", err)
 	}
 
 	// データベース接続の確認
@@ -136,7 +143,7 @@ func Test_APIIntegration(t *testing.T) {
 	appHost := os.Getenv("SERVER_HOST")
 	appPort := os.Getenv("SERVER_PORT")
 	if appHost == "" || appPort == "" {
-		panic("SERVER_HOST or SERVER_PORT environment variable is not set")
+		t.Fatalf("SERVER_HOST or SERVER_PORT environment variable is not set")
 	}
 	url := fmt.Sprintf("http://%s:%s", appHost, appPort)
 

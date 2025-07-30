@@ -11,25 +11,40 @@ import (
 
 const (
 	envFile = ".env.local"
+
+	// 終了コード定数
+	ExitError   = 1 // エラー終了
 )
 
 // main は Go-DDD アプリケーションのエントリーポイントです。
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(ExitError)
+	}
+}
+
+// run は実際のアプリケーションロジックを実行します。
+func run() error {
 	// .envファイルを読み込み
 	if err := godotenv.Load(envFile); err != nil {
-		panic(fmt.Sprintf("Warning: .env file not found or could not be loaded: %v", err))
+		return fmt.Errorf("failed to load .env file: %w", err)
 	}
 
 	// サーバー起動
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
-		panic("SERVER_PORT environment variable is not set")
+		return fmt.Errorf("SERVER_PORT environment variable is not set")
 	}
+
 	e, err := bootstrap.Initialize()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize application: %v", err))
+		return fmt.Errorf("failed to initialize application: %w", err)
 	}
+
 	if err := e.Start(":" + port); err != nil {
-		panic(fmt.Sprintf("Failed to start server: %v", err))
+		return fmt.Errorf("failed to start server: %w", err)
 	}
+
+	return nil
 }
