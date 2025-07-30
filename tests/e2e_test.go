@@ -53,9 +53,12 @@ func TestMain(m *testing.M) {
 
 	// アプリケーション起動
 	go func() {
-		e := app.Initialize()
+		e, err := app.Initialize()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize application: %v", err))
+		}
 		if err := e.Start(":" + appPort); err != nil {
-			fmt.Printf("Failed to start server: %v", err)
+			panic(fmt.Sprintf("Failed to start server: %v", err))
 		}
 	}()
 	time.Sleep(3 * time.Second)	// 起動待機

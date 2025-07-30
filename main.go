@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"os"
+	"fmt"
 
 	"go-ddd/internal/app"
 
@@ -17,7 +17,7 @@ const (
 func main() {
 	// .envファイルを読み込み
 	if err := godotenv.Load(envFile); err != nil {
-		log.Printf("Warning: .env file not found or could not be loaded: %v", err)
+		panic(fmt.Sprintf("Warning: .env file not found or could not be loaded: %v", err))
 	}
 
 	// サーバー起動
@@ -25,9 +25,11 @@ func main() {
 	if port == "" {
 		panic("SERVER_PORT environment variable is not set")
 	}
-
-	e := app.Initialize()
+	e, err := app.Initialize()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize application: %v", err))
+	}
 	if err := e.Start(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		panic(fmt.Sprintf("Failed to start server: %v", err))
 	}
 }
