@@ -1,0 +1,15 @@
+# golangci-lint設定ファイル
+run:
+  timeout: 5m                     # リント処理のタイムアウト時間
+  tests: true                     # テストファイル(*_test.go)もチェック対象に含める
+  skip-dirs:                      # チェック対象から除外するディレクトリ
+    - vendor                      # 依存関係のコード（サードパーティ）
+
+linters:
+  enable:
+    - errcheck                    # エラーの戻り値チェック漏れを検出
+    - govet                       # Go標準の静的解析ツール
+    - ineffassign                 # 効果のない代入を検出
+    - staticcheck                 # 高度な静的解析（バグ・パフォーマンス問題）
+    - unused                      # 未使用のコード（変数・関数・型）を検出
+    - gosec                       # セキュリティ脆弱性を検出
