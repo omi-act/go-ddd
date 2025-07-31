@@ -1,4 +1,4 @@
-package mapper
+package mappers
 
 import (
 	"go-ddd/internal/domain/entities"

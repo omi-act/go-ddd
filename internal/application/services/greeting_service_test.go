@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"go-ddd/internal/application/command"
+	"go-ddd/internal/application/commands"
 	"go-ddd/internal/domain/entities"
 	"go-ddd/internal/domain/value_objects"
-	"go-ddd/internal/testutils"
+	mocks "go-ddd/test/mocks/infrastructure"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -81,7 +81,7 @@ func TestSayHelloById(t *testing.T) {
 		
 		// Arrange
 		testdata := testCases.Valid
-		mockRepo := testutils.NewMockUserRepository()
+		mockRepo := mocks.NewMockUserRepository()
 		service := NewGreetingService(mockRepo)
 
 		userID, _ := value_objects.NewUserIDFromString(testdata.User.ID)
@@ -92,7 +92,7 @@ func TestSayHelloById(t *testing.T) {
 
 		// Act
 		result, err := service.SayHelloById(
-			&command.GreetByIdCommand{
+			&commands.GreetByIdCommand{
 				UserID: testdata.InputID,
 			})
 
@@ -113,11 +113,11 @@ func TestSayHelloById(t *testing.T) {
 		
 		// Arrange
 		testdata := testCases.InvalidID
-		mockRepo := testutils.NewMockUserRepository()
+		mockRepo := mocks.NewMockUserRepository()
 		service := NewGreetingService(mockRepo)
 
 		// Act
-		result, err := service.SayHelloById(&command.GreetByIdCommand{
+		result, err := service.SayHelloById(&commands.GreetByIdCommand{
 			UserID: testdata.InputID,
 		})
 
@@ -125,16 +125,13 @@ func TestSayHelloById(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Equal(t, testdata.ExpectedErr, err.Error())
-
-		// この場合はリポジトリが呼ばれないため、期待値の確認は不要
-		// （バリデーションエラーでリポジトリアクセス前に終了）
 	})
 
 	t.Run(testCases.NotFound.Description, func(t *testing.T) {
 		
 		// Arrange
 		testdata := testCases.NotFound
-		mockRepo := testutils.NewMockUserRepository()
+		mockRepo := mocks.NewMockUserRepository()
 		service := NewGreetingService(mockRepo)
 		userID, _ := value_objects.NewUserIDFromString(testdata.InputID)
 
@@ -142,7 +139,7 @@ func TestSayHelloById(t *testing.T) {
 		mockRepo.On("FindByID", userID).Return(nil, errors.New(testdata.ExpectedErr))
 
 		// Act
-		result, err := service.SayHelloById(&command.GreetByIdCommand{
+		result, err := service.SayHelloById(&commands.GreetByIdCommand{
 			UserID: testdata.InputID, // 存在しないID
 		})
 

@@ -2,7 +2,7 @@ package services
 
 import (
 	"errors"
-	"go-ddd/internal/application/command"
+	"go-ddd/internal/application/commands"
 	"go-ddd/internal/application/common"
 	"go-ddd/internal/application/interfaces"
 	"go-ddd/internal/domain/repositories"
@@ -19,6 +19,7 @@ func NewGreetingService(rep repositories.UserRepository) interfaces.GreetingServ
 	return &GreetingService{
 		repository: rep,
 	}
+
 }
 
 // SayHello は挨拶を返すメソッドです。
@@ -27,7 +28,7 @@ func (s *GreetingService) SayHello() string {
 }
 
 // SayHelloById はIDに基づいて挨拶を返すメソッドです。
-func (s *GreetingService) SayHelloById(cmd *command.GreetByIdCommand) (*common.GreetingResult, error) {
+func (s *GreetingService) SayHelloById(cmd *commands.GreetByIdCommand) (*common.GreetingResult, error) {
 
 	// コマンドの検証
 	userID, err := value_objects.NewUserIDFromString(cmd.UserID)

@@ -7,7 +7,7 @@ import (
 	"go-ddd/internal/domain/repositories"
 	"go-ddd/internal/domain/value_objects"
 	dbEntities "go-ddd/internal/infrastructure/postgres/entities"
-	"go-ddd/internal/infrastructure/postgres/mapper"
+	"go-ddd/internal/infrastructure/postgres/mappers"
 
 	"gorm.io/gorm"
 )
@@ -30,7 +30,7 @@ func (r *GormUserRepository) FindByID(userID *value_objects.UserID) (*entities.U
 	if err := r.db.First(&dbUser, userID.IDNumber).Error; err != nil {
 		return nil, fmt.Errorf("failed to find user by id: %w", err)
 	}
-	return mapper.ToUser(&dbUser), nil
+	return mappers.ToUser(&dbUser), nil
 }
 
 // FindAll はすべてのユーザーを取得します。
@@ -39,5 +39,5 @@ func (r *GormUserRepository) FindAll(limit, offset int) ([]*entities.User, error
 	if err := r.db.Limit(limit).Offset(offset).Find(&dbUsers).Error; err != nil {
 		return nil, fmt.Errorf("failed to find all users: %w", err)
 	}
-	return mapper.ToUsers(dbUsers), nil
+	return mappers.ToUsers(dbUsers), nil
 }

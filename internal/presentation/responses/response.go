@@ -1,4 +1,4 @@
-package response
+package responses
 
 // GreetByIdResponse はGreetByIdのAPIレスポンスを表すDTOです。
 type GreetByIdResponse struct {

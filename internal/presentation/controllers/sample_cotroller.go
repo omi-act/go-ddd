@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"go-ddd/internal/application/interfaces"
-	"go-ddd/internal/presentation/dto/mapper"
-	"go-ddd/internal/presentation/dto/request"
+	"go-ddd/internal/presentation/mappers"
+	"go-ddd/internal/presentation/requests"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -42,8 +42,8 @@ func (sc *SampleController) GreetById(c echo.Context) error {
 	id := c.Param("id")
 	
 	//リクエストDTOをコマンドDTOに変換
-	req := request.NewGreetByIdRequest(id)
-	cmd, err := mapper.ToGreetByIdCommand(req)
+	req := requests.NewGreetByIdRequest(id)
+	cmd, err := mappers.ToGreetByIdCommand(req)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -55,6 +55,6 @@ func (sc *SampleController) GreetById(c echo.Context) error {
 	}
 
 	// レスポンスの変換
-	response := mapper.ToGreetByIdResponse(result)
+	response := mappers.ToGreetByIdResponse(result)
 	return c.JSON(http.StatusOK, response)
 }

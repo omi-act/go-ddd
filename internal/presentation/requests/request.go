@@ -1,4 +1,4 @@
-package request
+package requests
 
 // GreetByIdRequest はIDに基づく挨拶リクエストのDTOです。
 type GreetByIdRequest struct {

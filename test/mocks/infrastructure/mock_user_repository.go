@@ -1,8 +1,9 @@
-package testutils
+package mocks
 
 import (
 	"go-ddd/internal/domain/entities"
 	"go-ddd/internal/domain/value_objects"
+
 	"github.com/stretchr/testify/mock"
 )
 
