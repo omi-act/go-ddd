@@ -52,7 +52,11 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Failed to start postgres container: %v\n", err)
 		os.Exit(ExitError)
 	}
-	defer postgresC.Terminate(ctx)
+	defer func() {
+		if err := postgresC.Terminate(ctx); err != nil {
+			fmt.Printf("Failed to terminate postgres container: %v\n", err)
+		}
+	}()
 
 	fmt.Println("Test database initialized with Dockerfile and init.sql")
 
