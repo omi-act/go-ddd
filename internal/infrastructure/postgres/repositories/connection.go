@@ -1,4 +1,4 @@
-package postgres
+package repositories
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
-// CreateDbConnection はデータベース接続を作成します。
-func (c *DatabaseConfig) CreateDbConnection() (*gorm.DB, error) {
+// OpenConnection はデータベース接続を開きます。
+func (c *DatabaseConfig) OpenConnection() (*gorm.DB, error) {
 	return gorm.Open(postgres.Open(c.toString()), &gorm.Config{})
 }
 
@@ -30,4 +30,3 @@ func (c *DatabaseConfig) toString() string {
 	}
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", c.Host, c.Port, c.User, c.Password, c.DBName, sslmode)
 }
-
